@@ -1,0 +1,11 @@
+Flask
+jinja2
+langchain
+langchain-openai
+langchain-community
+sentence-transformers
+faiss-cpu
+PyMuPDF
+unstructured
+unstructured[pdf]
+gunicorn
