@@ -182,6 +182,10 @@ def analyze_academic_pattern(percentages):
 
 
 # Routes
+@app.route("/", methods=["GET"])
+def home():
+    return "✅ Flask RAG API is live and ready!"
+
 @app.route("/rag", methods=["POST"])
 def rag():
     data = request.json
