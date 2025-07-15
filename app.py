@@ -235,6 +235,14 @@ def rag():
             "error": "Failed to generate report",
             "details": str(e)
         }), 500
+        
+    @app.route("/", methods=["GET"])
+def home():
+    return "✅ Flask RAG API is live and ready!"
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+
+
+
+
