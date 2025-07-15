@@ -9,3 +9,4 @@ PyMuPDF
 unstructured
 unstructured[pdf]
 gunicorn
+flask_cors
