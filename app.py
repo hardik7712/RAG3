@@ -249,7 +249,7 @@ List:
         "raw_answer": full_answer
     })
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Render provides PORT env variable
+    port = int(os.environ.get("PORT", 10000))  # 10000 fallback for local
     app.run(host="0.0.0.0", port=port)
 
 @app.route("/astrology", methods=["POST"])
