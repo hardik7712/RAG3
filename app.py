@@ -1,7 +1,5 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-app = Flask(__name__)
-CORS(app)  # Allow all origins temporarily for testing
 from dotenv import load_dotenv
 import os
 from langchain.text_splitter import CharacterTextSplitter
@@ -9,8 +7,28 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import RetrievalQA
+from datetime import datetime
+import re
 
-# Step 3: Load API key from .env file
+# Initialize Flask app with CORS
+app = Flask(__name__)
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
+# Load environment variables
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
@@ -20,68 +38,20 @@ PDF_FILES = [
     "./allknowledgebase/Astrology For The Soul PDF.pdf",
     "./allknowledgebase/Numerology and the Divine Triangle (Faith Javane).pdf",
     "./allknowledgebase/the-only-astrology-book-youll-ever-need_compress.pdf"
-    "./allknowledgebase/ACEDEMICSKB.pdf",
 ]
 FAISS_INDEX_PATH = "faiss_index"
 
-# Initialize Flask app
-
-
-# Initialize embeddings
+# Initialize AI components
 embeddings = OpenAIEmbeddings()
-
-# Utility: Load and chunk multiple PDFs
-def load_and_split_documents(file_paths):
-    docs = []
-    for file in file_paths:
-        if os.path.exists(file):
-            print(f"✅ Loading: {file}")
-            loader = PyMuPDFLoader(file)
-            loaded = loader.load()
-            print(f"  --> Loaded {len(loaded)} pages")
-            docs.extend(loaded)
-        else:
-            print(f"❌ File not found: {file}")
-    splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
-    chunks = splitter.split_documents(docs)
-    print(f"🧩 Total chunks created: {len(chunks)}")
-    return chunks
-
-
-# Load or build FAISS vector store
-def get_vector_store():
-    if os.path.exists(FAISS_INDEX_PATH):
-        print("📁 Loading existing FAISS index...")
-        return FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
-    else:
-        print("📄 Building new FAISS index...")
-        chunks = load_and_split_documents(PDF_FILES)
-
-        batch_size = 100
-        vectorstore = None
-        for i in range(0, len(chunks), batch_size):
-            batch = chunks[i:i + batch_size]
-            print(f"🔄 Processing batch {i // batch_size + 1}...")
-            if vectorstore is None:
-                vectorstore = FAISS.from_documents(batch, embeddings)
-            else:
-                vectorstore.add_documents(batch)
-
-        vectorstore.save_local(FAISS_INDEX_PATH)
-        return vectorstore
-
-
-# Initialize RAG components
-vector_store = get_vector_store()
+vector_store = FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
 llm = ChatOpenAI(model="gpt-4o", temperature=0)
 qa_chain = RetrievalQA.from_chain_type(
     llm=llm,
     retriever=vector_store.as_retriever(),
     return_source_documents=True
 )
-from datetime import datetime
 
-# Zodiac mapping logic
+# Zodiac configuration
 ZODIAC_SIGNS = [
     ("Capricorn", (1, 1), (1, 19)),
     ("Aquarius", (1, 20), (2, 18)),
@@ -123,197 +93,148 @@ def get_zodiac_and_famous_people(dob_str):
     except Exception:
         pass
     return "Unknown", []
-def analyze_academic_pattern(percentages):
-    if not percentages or len(percentages) < 3:
-        return "Academic pattern: Not enough data.", [], []
 
-    avg = sum(percentages) / len(percentages)
-    trend = "flat"
-    if percentages[-1] > percentages[0]:
-        if percentages[-1] - percentages[0] >= 10:
-            trend = "improving"
-    elif percentages[0] - percentages[-1] >= 10:
-        trend = "declining"
+def format_response_item(item):
+    """Ensure consistent bold formatting in response items"""
+    if not isinstance(item, str):
+        return item
+    # Add bold formatting to key terms if missing
+    key_terms = [
+        "Social Engagement", "Self-Efficacy", "Temperament", 
+        "Internalizing", "Self-Esteem", "School Refusal",
+        "Emotional Expression", "Dependent Behavior", 
+        "Parental Reinforcement", "Communication",
+        "Independence", "Social Interaction"
+    ]
+    for term in key_terms:
+        if term in item and f"**{term}**" not in item:
+            item = item.replace(term, f"**{term}**")
+    return item
 
-    fluctuation = max(percentages) - min(percentages)
+def parse_report_sections(text):
+    """Improved parsing of the AI response into structured sections"""
+    sections = {
+        "strengths": [],
+        "weaknesses": [],
+        "recommendations": []
+    }
+    current_section = None
+    
+    for line in text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Detect section headers
+        if "strength" in line.lower():
+            current_section = "strengths"
+            continue
+        elif "weakness" in line.lower():
+            current_section = "weaknesses"
+            continue
+        elif "recommendation" in line.lower():
+            current_section = "recommendations"
+            continue
+        
+        # Add content to current section
+        if current_section and line and not line.startswith(('###', '---')):
+            formatted_line = format_response_item(line)
+            sections[current_section].append(formatted_line)
+    
+    # Ensure exactly 3 items per section
+    for section in sections:
+        sections[section] = sections[section][:3]
+        if not sections[section]:
+            sections[section] = [f"No {section} identified"]
+    
+    return sections
 
-    # Match against KB patterns
-    if avg >= 75:
-        pattern = "consistent_performer"
-        tags = ["academic_consistency", "self_motivation"]
-        recs = [
-            "Encourage participation in enrichment programs.",
-            "Consider leadership roles in academic teams."
-        ]
-    elif avg <= 60:
-        pattern = "underperforming"
-        tags = ["academic_struggle", "possible_learning_difficulty"]
-        recs = [
-            "Recommend diagnostic academic or psychological assessment.",
-            "Provide remedial support and mentoring interventions."
-        ]
-    elif trend == "declining":
-        pattern = "declining_trend"
-        tags = ["academic_decline", "possible_attention_issues"]
-        recs = [
-            "Evaluate for potential attention or emotional factors.",
-            "Schedule regular academic reviews with guardians."
-        ]
-    elif trend == "improving":
-        pattern = "improving_trend"
-        tags = ["positive_academic_growth", "resilience"]
-        recs = [
-            "Reinforce study habits and motivation strategies.",
-            "Recognize and reward progress to maintain momentum."
-        ]
-    elif fluctuation >= 15:
-        pattern = "inconsistent_performance"
-        tags = ["inconsistent_focus", "possible_environmental_factors"]
-        recs = [
-            "Investigate stability of support systems at home or school.",
-            "Implement a consistent academic routine."
-        ]
-    else:
-        pattern = "average_performance"
-        tags = []
-        recs = []
-    description = f"Academic pattern: {pattern.replace('_', ' ').title()} (Avg: {avg:.1f}%, Trend: {trend}, Fluctuation: {fluctuation}%)"
-    return description, tags, recs
-
-
-# Routes
-@app.route("/", methods=["GET"])
-def home():
-    return "✅ Flask RAG API is live and ready!"
+@app.route('/rag', methods=['OPTIONS'])
+def handle_options():
+    return jsonify({'message': 'Preflight request accepted'}), 200
 
 @app.route("/rag", methods=["POST"])
 def rag():
-    data = request.json
-    dob = data.get("dob", "Not provided")
-    time_of_birth = data.get("time_of_birth", "Not provided")
-    place_of_birth = data.get("place_of_birth", "Not provided")
-    symptoms = data.get("symptom_keywords", [])
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
 
-    academic_info = data.get("academic_info", {})
-    percentages = academic_info.get("percentages_last_3_years", [])
-    academic_desc, academic_tags, academic_recs = analyze_academic_pattern(percentages)
+        # Validate required fields
+        required_fields = ['dob', 'time_of_birth', 'place_of_birth', 'symptom_keywords']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"Missing required field: {field}"}), 400
 
-    zodiac, famous_people = get_zodiac_and_famous_people(dob)
+        dob = data['dob']
+        time_of_birth = data['time_of_birth']
+        place_of_birth = data['place_of_birth']
+        symptoms = data['symptom_keywords']
+        academic_records = data.get('academic_records', [])
 
-    query = f"""
-A child was born on {dob} at {time_of_birth} in {place_of_birth}.
-Zodiac sign: {zodiac}. Famous people with this sign: {', '.join(famous_people)}.
-The child's psychological traits include: {', '.join(symptoms)}.
-{academic_desc}
-Academic recommendations: {', '.join(academic_recs)}
+        # Get zodiac information
+        zodiac, famous_people = get_zodiac_and_famous_people(dob)
 
-Using DSM-5 psychological criteria, astrological traits, and academic/educational theory from the knowledge base, provide a holistic, non-clinical exploration of this child's strengths, weaknesses, and growth opportunities.
+        # Prepare academic summary if available
+        academic_summary = ""
+        if academic_records:
+            academic_summary = "\nAcademic Performance:\n" + "\n".join(
+                f"{rec.get('year', '')} - Class {rec.get('class', '')}: " +
+                ", ".join(f"{sub['subject']} ({sub['percentage']}%)" 
+                for sub in rec.get('subjects', []))
+                for rec in academic_records
+            )
 
-For the academic perspective, analyze the provided academic pattern and recommendations, and blend them with psychological and astrological insights.
+        # Construct the standardized query
+        query = f"""
+        Comprehensive Child Profile Analysis Request:
+        
+        Basic Information:
+        - Date of Birth: {dob}
+        - Time of Birth: {time_of_birth}
+        - Place of Birth: {place_of_birth}
+        - Zodiac Sign: {zodiac}
+        - Famous People with Same Sign: {', '.join(famous_people)}
+        
+        Psychological Traits:
+        {', '.join(symptoms)}
+        
+        {academic_summary}
+        
+        Please provide a detailed analysis with exactly:
+        1. Three key strengths (bold each strength category with **)
+        2. Three areas for improvement (bold each weakness with **)
+        3. Three specific recommendations (bold each recommendation focus with **)
+        
+        Format each section clearly with numbered items and maintain consistent 
+        bold formatting for key psychological terms throughout the report.
+        """
 
-Do not provide a clinical diagnosis. Present the analysis as a blend of psychological, astrological, and academic insights for educational purposes only.
+        # Get AI response
+        result = qa_chain({"query": query})
+        full_answer = result["result"]
 
-List:
-1. 3 strengths (showing how psychological, astrological, and academic perspectives reinforce or contrast each other)
-2. 3 weaknesses or risk areas (with similar commentary)
-3. 3 recommendations for growth (drawing from all three perspectives)
-"""
+        # Parse the response into structured sections
+        sections = parse_report_sections(full_answer)
 
-    result = qa_chain({"query": query})
-    full_answer = result["result"]
+        # Prepare the standardized response
+        response_data = {
+            "strengths": sections["strengths"],
+            "weaknesses": sections["weaknesses"],
+            "recommendations": sections["recommendations"],
+            "zodiac": zodiac,
+            "famous_people": famous_people,
+            "raw_answer": full_answer
+        }
 
-    # Basic parsing for strengths, weaknesses, recommendations
-    def extract_section(text, header):
-        lines = text.splitlines()
-        found = []
-        collect = False
-        for line in lines:
-            if header.lower() in line.lower():
-                collect = True
-                continue
-            if collect:
-                if line.strip() == "" or line.strip().lower().startswith("recommendation") or line.strip().lower().startswith("weakness") or line.strip().lower().startswith("strength"):
-                    break
-                found.append(line.strip("-•: \t"))
-        return [line for line in found if line]
+        return jsonify(response_data)
 
-    strengths = extract_section(full_answer, "Strength")
-    weaknesses = extract_section(full_answer, "Weakness")
-    recommendations = extract_section(full_answer, "Recommendation")
+    except Exception as e:
+        print(f"Error in /rag endpoint: {str(e)}")
+        return jsonify({
+            "error": "Failed to generate report",
+            "details": str(e)
+        }), 500
 
-    return jsonify({
-        "strengths": strengths or ["Strength not parsed."],
-        "weaknesses": weaknesses or ["Weakness not parsed."],
-        "recommendations": recommendations or ["Recommendation not parsed."],
-        "zodiac": zodiac,
-        "famous_people": famous_people,
-        "academic_pattern": academic_desc,
-        "academic_tags": academic_tags,
-        "academic_recommendations": academic_recs,
-        "raw_answer": full_answer
-    })
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # 10000 fallback for local
-    app.run(host="0.0.0.0", port=port)
-
-@app.route("/astrology", methods=["POST"])
-def astrology():
-    data = request.json
-    dob = data.get("dob")
-    time_of_birth = data.get("time_of_birth")
-    place_of_birth = data.get("place_of_birth")
-
-    zodiac, famous_people = get_zodiac_and_famous_people(dob)
-
-    query = f"""
-    A child was born on {dob} at {time_of_birth} in {place_of_birth}.
-    Zodiac sign: {zodiac}. Famous people with this sign: {', '.join(famous_people)}.
-    Provide 3 strengths, 3 weaknesses, and 3 growth suggestions based on astrology and age traits.
-    """
-    result = qa_chain({"query": query})
-
-    return jsonify({
-        "zodiac": zodiac,
-        "famous_people": famous_people,
-        "answer": result["result"],
-    })
-@app.route("/psychology", methods=["POST"])
-def psychology():
-    data = request.json
-    symptoms = data.get("symptom_keywords", [])
-
-    query = f"""
-    The child is showing these traits: {', '.join(symptoms)}.
-    Analyze their mental health using DSM-5 guidelines.
-    Provide 3 strengths, 3 weaknesses or risks, and 3 recommendations.
-    """
-    result = qa_chain({"query": query})
-
-    return jsonify({
-        "answer": result["result"]
-    })
-@app.route("/final-analysis", methods=["POST"])
-def final_analysis():
-    data = request.json
-    astro = data.get("astrology", {})
-    psych = data.get("psychology", {})
-    academics = data.get("academics", {})
-
-    query = f"""
-    Based on the following:
-    Astrology Info: {astro.get('answer')}
-    Mental Health Traits: {psych.get('answer')}
-    Academic Data: Grades: {academics.get('grades')}, Comments: {academics.get('comments')}
-
-    Create a final comprehensive diagnostic report with:
-    1. Overview Summary
-    2. Key Strengths
-    3. Areas for Growth
-    4. Tailored Recommendations
-    """
-    result = qa_chain({"query": query})
-
-    return jsonify({
-        "summary": result["result"]
-    })
-
+    app.run(debug=True, host="0.0.0.0", port=5000)
