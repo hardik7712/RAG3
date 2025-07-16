@@ -169,7 +169,6 @@ def parse_report_sections(text):
 
     return sections
 
-
 @app.route('/rag', methods=['OPTIONS'])
 def handle_options():
     return jsonify({'message': 'Preflight request accepted'}), 200
