@@ -31,7 +31,8 @@ def after_request(response):
     allowed_origins = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-        "https://oohr-erp.web.app"
+        "https://oohr-erp.web.app",
+        "https://rag3-bfcu.onrender.com"  # ← ADD THIS LINE
     ]
     if origin in allowed_origins:
         response.headers.add('Access-Control-Allow-Origin', origin)
@@ -39,7 +40,6 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
-
 # Load environment variables
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
