@@ -254,32 +254,43 @@ def rag():
 
         # Construct the standardized query
         query = f"""
-        Comprehensive Child Profile Analysis Request:
+Comprehensive Child Profile Analysis Request:
 
-        Basic Information:
-        - Date of Birth: {dob}
-        - Time of Birth: {time_of_birth}
-        - Place of Birth: {place_of_birth}
-        - Zodiac Sign: {zodiac}
-        - Famous People with Same Sign: {', '.join(famous_people)}
+🧠 Basic Information:
+- Date of Birth: {dob}
+- Time of Birth: {time_of_birth}
+- Place of Birth: {place_of_birth}
+- Zodiac Sign: {zodiac}
+- Famous People with Same Sign: {', '.join(famous_people)}
 
-        Psychological Traits (DSM-5 indicators):
-        {', '.join(symptoms)}
+🧩 Psychological Traits (DSM-5 indicators):
+{', '.join(symptoms)}
 
-        {academic_summary}
+📘 Academic Performance Summary:
+{academic_summary if academic_summary else "Academic records were not provided."}
 
-        Based on the **astrological sign ({zodiac})**, psychological traits, and academic records, please provide:
-        1. **Three key strengths** (bold each strength category with **)
-        2. **Three areas for improvement** (bold each weakness with **)
-        3. **Three specific recommendations** (bold each recommendation focus with **)
-        
-        Make sure to:
-        - Explain how the child’s **zodiac sign personality traits** may influence their behavior, learning style, or emotional tendencies.
-        - Connect personality characteristics of the zodiac sign to the strengths or weaknesses where applicable.
-        - Maintain a balance between astrology and psychology in the analysis.
+📊 Based on the child's **astrological sign ({zodiac})**, psychological traits, and academic records, please provide a report with:
 
-        Format each section clearly with numbered items and use consistent **bold formatting** for key terms.
-        """
+1. **Three Key Strengths**  
+   - Integrate astrological, psychological, and academic strengths  
+   - Highlight subject-specific performance if available  
+
+2. **Three Areas for Improvement**  
+   - Include academic gaps if reflected in the records  
+   - Consider emotional or behavioral weaknesses  
+
+3. **Three Personalized Recommendations**  
+   - Realistic suggestions based on child’s learning profile  
+   - Can include educational strategies, emotional support, or extracurriculars  
+
+📌 Also, include this note at the end:  
+_"This report will be taken again during training to improve accuracy and provide more refined insights."_
+
+💡 Notes:  
+- Bold important traits or categories (**like this**)  
+- Connect zodiac personality traits to any behavioral/learning patterns  
+- Maintain a clear balance between astrology, psychology, and academics  
+"""
 
         # Get AI response
         result = qa_chain({"query": query})
