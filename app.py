@@ -81,19 +81,66 @@ ZODIAC_SIGNS = [
 ]
 
 FAMOUS_ZODIACS = {
-    "Aries": ["Lady Gaga", "Robert Downey Jr."],
-    "Taurus": ["Gigi Hadid", "David Beckham"],
-    "Gemini": ["Angelina Jolie", "Kanye West"],
-    "Cancer": ["Elon Musk", "Ariana Grande"],
-    "Leo": ["Barack Obama", "Jennifer Lopez"],
-    "Virgo": ["Beyoncé", "Michael Jackson", "Warren Buffett"],
-    "Libra": ["Will Smith", "Kim Kardashian"],
-    "Scorpio": ["Bill Gates", "Drake"],
-    "Sagittarius": ["Taylor Swift", "Brad Pitt"],
-    "Capricorn": ["Michelle Obama", "Denzel Washington"],
-    "Aquarius": ["Oprah Winfrey", "Harry Styles"],
-    "Pisces": ["Rihanna", "Albert Einstein"],
+    "Aries": [
+        "Ajay Devgn", "Kapil Sharma", "Dr. A.P.J. Abdul Kalam",  # Missile Man of India
+        "Emraan Hashmi", "Robert Downey Jr."
+    ],
+    "Taurus": [
+        "Sachin Tendulkar", "Anushka Sharma", "G. D. Naidu",     # Indian Edison
+        "Madhuri Dixit", "David Beckham"
+    ],
+    "Gemini": [
+        "Sonam Kapoor", "Shilpa Shetty", "Karan Johar",
+        "Dr. B. R. Ambedkar",  # Architect of Indian Constitution
+        "Angelina Jolie"
+    ],
+    "Cancer": [
+        "Priyanka Chopra", "MS Dhoni", "Ranveer Singh",
+        "J. R. D. Tata",  # Industrialist and philanthropist
+        "Ariana Grande"
+    ],
+    "Leo": [
+        "Saif Ali Khan", "Sridevi", "Jacqueline Fernandez",
+        "Bal Gangadhar Tilak",  # Freedom fighter
+        "Barack Obama"
+    ],
+    "Virgo": [
+        "Akshay Kumar", "Kareena Kapoor", "Narendra Modi",
+        "Verghese Kurien",  # Father of White Revolution
+        "Michael Jackson"
+    ],
+    "Libra": [
+        "Amitabh Bachchan", "Rekha", "Ranbir Kapoor",
+        "Dr. Vikram Sarabhai",  # Father of Indian Space Program
+        "Will Smith"
+    ],
+    "Scorpio": [
+        "Shah Rukh Khan", "Aishwarya Rai", "Sushmita Sen",
+        "Lal Bahadur Shastri",  # Former PM
+        "Bill Gates"
+    ],
+    "Sagittarius": [
+        "Yami Gautam", "Dharmendra", "John Abraham",
+        "Kalpana Chawla",  # Astronaut
+        "Taylor Swift"
+    ],
+    "Capricorn": [
+        "Deepika Padukone", "Hrithik Roshan", "Javed Akhtar",
+        "Swami Vivekananda",  # Spiritual leader
+        "Michelle Obama"
+    ],
+    "Aquarius": [
+        "Preity Zinta", "Abhishek Bachchan", "Jackie Shroff",
+        "Ratan Tata",  # Business leader
+        "Oprah Winfrey"
+    ],
+    "Pisces": [
+        "Alia Bhatt", "Shahid Kapoor", "Tiger Shroff",
+        "C. V. Raman",  # Physicist & Nobel laureate
+        "Albert Einstein"
+    ]
 }
+
 
 def get_zodiac_and_famous_people(dob_str):
     try:
@@ -208,26 +255,30 @@ def rag():
         # Construct the standardized query
         query = f"""
         Comprehensive Child Profile Analysis Request:
-        
+
         Basic Information:
         - Date of Birth: {dob}
         - Time of Birth: {time_of_birth}
         - Place of Birth: {place_of_birth}
         - Zodiac Sign: {zodiac}
         - Famous People with Same Sign: {', '.join(famous_people)}
-        
-        Psychological Traits:
+
+        Psychological Traits (DSM-5 indicators):
         {', '.join(symptoms)}
-        
+
         {academic_summary}
+
+        Based on the **astrological sign ({zodiac})**, psychological traits, and academic records, please provide:
+        1. **Three key strengths** (bold each strength category with **)
+        2. **Three areas for improvement** (bold each weakness with **)
+        3. **Three specific recommendations** (bold each recommendation focus with **)
         
-        Please provide a detailed analysis with exactly:
-        1. Three key strengths (bold each strength category with **)
-        2. Three areas for improvement (bold each weakness with **)
-        3. Three specific recommendations (bold each recommendation focus with **)
-        
-        Format each section clearly with numbered items and maintain consistent 
-        bold formatting for key psychological terms throughout the report.
+        Make sure to:
+        - Explain how the child’s **zodiac sign personality traits** may influence their behavior, learning style, or emotional tendencies.
+        - Connect personality characteristics of the zodiac sign to the strengths or weaknesses where applicable.
+        - Maintain a balance between astrology and psychology in the analysis.
+
+        Format each section clearly with numbered items and use consistent **bold formatting** for key terms.
         """
 
         # Get AI response
