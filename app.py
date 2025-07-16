@@ -131,13 +131,22 @@ def parse_report_sections(text):
         "recommendations": []
     }
     current_section = None
-    
+
+    # 🧹 Clean any unwanted lines at the start
+    filtered_lines = []
     for line in text.split('\n'):
         line = line.strip()
+        # Skip irrelevant or fallback lines
+        if "I don't have the capability" in line:
+            continue
+        if "I’m sorry" in line:
+            continue
+        filtered_lines.append(line)
+
+    # 🔍 Now parse filtered lines
+    for line in filtered_lines:
         if not line:
             continue
-        
-        # Detect section headers
         if "strength" in line.lower():
             current_section = "strengths"
             continue
@@ -147,19 +156,19 @@ def parse_report_sections(text):
         elif "recommendation" in line.lower():
             current_section = "recommendations"
             continue
-        
-        # Add content to current section
-        if current_section and line and not line.startswith(('###', '---')):
+
+        if current_section and not line.startswith(('###', '---')):
             formatted_line = format_response_item(line)
             sections[current_section].append(formatted_line)
-    
-    # Ensure exactly 3 items per section
+
+    # Make sure each section has exactly 3 items
     for section in sections:
         sections[section] = sections[section][:3]
         if not sections[section]:
             sections[section] = [f"No {section} identified"]
-    
+
     return sections
+
 
 @app.route('/rag', methods=['OPTIONS'])
 def handle_options():
