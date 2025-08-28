@@ -2,28 +2,26 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-from langchain.text_splitter import CharacterTextSplitter
-from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from datetime import datetime
-import re
 
-# Initialize Flask app with CORS
+# -------------------- Flask App & CORS --------------------
 app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
         "origins": [
+            "http://192.168.56.1:8080",
+            "http://localhost:8080",
+            "http://127.0.0.1:8080",
             "http://localhost:5000",
             "http://127.0.0.1:5000",
-            "https://oohr-erp.web.app"  # ← replace with your real frontend URL
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"]
     }
 })
-
 
 @app.after_request
 def after_request(response):
@@ -32,7 +30,7 @@ def after_request(response):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://oohr-erp.web.app",
-        "https://rag3-bfcu.onrender.com"  # ← ADD THIS LINE
+        "https://rag3-bfcu.onrender.com"
     ]
     if origin in allowed_origins:
         response.headers.add('Access-Control-Allow-Origin', origin)
@@ -40,20 +38,13 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
     response.headers.add('Access-Control-Allow-Credentials', 'true')
     return response
-# Load environment variables
+
+# -------------------- Environment --------------------
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
-# Constants
-PDF_FILES = [
-    "./allknowledgebase/DSM-5-TR.pdf",
-    "./allknowledgebase/Astrology For The Soul PDF.pdf",
-    "./allknowledgebase/Numerology and the Divine Triangle (Faith Javane).pdf",
-    "./allknowledgebase/the-only-astrology-book-youll-ever-need_compress.pdf"
-]
+# -------------------- AI Components --------------------
 FAISS_INDEX_PATH = "faiss_index"
-
-# Initialize AI components
 embeddings = OpenAIEmbeddings()
 vector_store = FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
 llm = ChatOpenAI(model="gpt-4o", temperature=0)
@@ -63,7 +54,7 @@ qa_chain = RetrievalQA.from_chain_type(
     return_source_documents=True
 )
 
-# Zodiac configuration
+# -------------------- Zodiac --------------------
 ZODIAC_SIGNS = [
     ("Capricorn", (1, 1), (1, 19)),
     ("Aquarius", (1, 20), (2, 18)),
@@ -81,66 +72,19 @@ ZODIAC_SIGNS = [
 ]
 
 FAMOUS_ZODIACS = {
-    "Aries": [
-        "Ajay Devgn", "Kapil Sharma", "Dr. A.P.J. Abdul Kalam",  # Missile Man of India
-        "Emraan Hashmi", "Robert Downey Jr."
-    ],
-    "Taurus": [
-        "Sachin Tendulkar", "Anushka Sharma", "G. D. Naidu",     # Indian Edison
-        "Madhuri Dixit", "David Beckham"
-    ],
-    "Gemini": [
-        "Sonam Kapoor", "Shilpa Shetty", "Karan Johar",
-        "Dr. B. R. Ambedkar",  # Architect of Indian Constitution
-        "Angelina Jolie"
-    ],
-    "Cancer": [
-        "Priyanka Chopra", "MS Dhoni", "Ranveer Singh",
-        "J. R. D. Tata",  # Industrialist and philanthropist
-        "Ariana Grande"
-    ],
-    "Leo": [
-        "Saif Ali Khan", "Sridevi", "Jacqueline Fernandez",
-        "Bal Gangadhar Tilak",  # Freedom fighter
-        "Barack Obama"
-    ],
-    "Virgo": [
-        "Akshay Kumar", "Kareena Kapoor", "Narendra Modi",
-        "Verghese Kurien",  # Father of White Revolution
-        "Michael Jackson"
-    ],
-    "Libra": [
-        "Amitabh Bachchan", "Rekha", "Ranbir Kapoor",
-        "Dr. Vikram Sarabhai",  # Father of Indian Space Program
-        "Will Smith"
-    ],
-    "Scorpio": [
-        "Shah Rukh Khan", "Aishwarya Rai", "Sushmita Sen",
-        "Lal Bahadur Shastri",  # Former PM
-        "Bill Gates"
-    ],
-    "Sagittarius": [
-        "Yami Gautam", "Dharmendra", "John Abraham",
-        "Kalpana Chawla",  # Astronaut
-        "Taylor Swift"
-    ],
-    "Capricorn": [
-        "Deepika Padukone", "Hrithik Roshan", "Javed Akhtar",
-        "Swami Vivekananda",  # Spiritual leader
-        "Michelle Obama"
-    ],
-    "Aquarius": [
-        "Preity Zinta", "Abhishek Bachchan", "Jackie Shroff",
-        "Ratan Tata",  # Business leader
-        "Oprah Winfrey"
-    ],
-    "Pisces": [
-        "Alia Bhatt", "Shahid Kapoor", "Tiger Shroff",
-        "C. V. Raman",  # Physicist & Nobel laureate
-        "Albert Einstein"
-    ]
+    "Aries": ["Ajay Devgn", "Kapil Sharma", "Dr. A.P.J. Abdul Kalam", "Emraan Hashmi", "Robert Downey Jr."],
+    "Taurus": ["Sachin Tendulkar", "Anushka Sharma", "G. D. Naidu", "Madhuri Dixit", "David Beckham"],
+    "Gemini": ["Sonam Kapoor", "Shilpa Shetty", "Karan Johar", "Dr. B. R. Ambedkar", "Angelina Jolie"],
+    "Cancer": ["Priyanka Chopra", "MS Dhoni", "Ranveer Singh", "J. R. D. Tata", "Ariana Grande"],
+    "Leo": ["Saif Ali Khan", "Sridevi", "Jacqueline Fernandez", "Bal Gangadhar Tilak", "Barack Obama"],
+    "Virgo": ["Akshay Kumar", "Kareena Kapoor", "Narendra Modi", "Verghese Kurien", "Michael Jackson"],
+    "Libra": ["Amitabh Bachchan", "Rekha", "Ranbir Kapoor", "Dr. Vikram Sarabhai", "Will Smith"],
+    "Scorpio": ["Shah Rukh Khan", "Aishwarya Rai", "Sushmita Sen", "Lal Bahadur Shastri", "Bill Gates"],
+    "Sagittarius": ["Yami Gautam", "Dharmendra", "John Abraham", "Kalpana Chawla", "Taylor Swift"],
+    "Capricorn": ["Deepika Padukone", "Hrithik Roshan", "Javed Akhtar", "Swami Vivekananda", "Michelle Obama"],
+    "Aquarius": ["Preity Zinta", "Abhishek Bachchan", "Jackie Shroff", "Ratan Tata", "Oprah Winfrey"],
+    "Pisces": ["Alia Bhatt", "Shahid Kapoor", "Tiger Shroff", "C. V. Raman", "Albert Einstein"]
 }
-
 
 def get_zodiac_and_famous_people(dob_str):
     try:
@@ -149,15 +93,14 @@ def get_zodiac_and_famous_people(dob_str):
         for sign, start, end in ZODIAC_SIGNS:
             if (month, day) >= start and (month, day) <= end:
                 return sign, FAMOUS_ZODIACS.get(sign, [])
-    except Exception:
-        pass
+    except Exception as e:
+        print("Zodiac parsing error:", e)
     return "Unknown", []
 
+# -------------------- Helpers --------------------
 def format_response_item(item):
-    """Ensure consistent bold formatting in response items"""
     if not isinstance(item, str):
         return item
-    # Add bold formatting to key terms if missing
     key_terms = [
         "Social Engagement", "Self-Efficacy", "Temperament", 
         "Internalizing", "Self-Esteem", "School Refusal",
@@ -171,51 +114,22 @@ def format_response_item(item):
     return item
 
 def parse_report_sections(text):
-    """Improved parsing of the AI response into structured sections"""
-    sections = {
-        "strengths": [],
-        "weaknesses": [],
-        "recommendations": []
-    }
+    sections = {"strengths": [], "weaknesses": [], "recommendations": []}
     current_section = None
-
-    # 🧹 Clean any unwanted lines at the start
-    filtered_lines = []
-    for line in text.split('\n'):
+    for line in text.split("\n"):
         line = line.strip()
-        # Skip irrelevant or fallback lines
-        if "I don't have the capability" in line:
-            continue
-        if "I’m sorry" in line:
-            continue
-        filtered_lines.append(line)
-
-    # 🔍 Now parse filtered lines
-    for line in filtered_lines:
         if not line:
             continue
-        if "strength" in line.lower():
-            current_section = "strengths"
-            continue
-        elif "weakness" in line.lower():
-            current_section = "weaknesses"
-            continue
-        elif "recommendation" in line.lower():
-            current_section = "recommendations"
-            continue
-
-        if current_section and not line.startswith(('###', '---')):
-            formatted_line = format_response_item(line)
-            sections[current_section].append(formatted_line)
-
-    # Make sure each section has exactly 3 items
-    for section in sections:
-        sections[section] = sections[section][:3]
-        if not sections[section]:
-            sections[section] = [f"No {section} identified"]
-
+        if "strength" in line.lower(): current_section = "strengths"; continue
+        if "weakness" in line.lower(): current_section = "weaknesses"; continue
+        if "recommendation" in line.lower(): current_section = "recommendations"; continue
+        if current_section: sections[current_section].append(format_response_item(line))
+    for k in sections:
+        sections[k] = sections[k][:3]
+        if not sections[k]: sections[k] = [f"No {k} identified"]
     return sections
 
+# -------------------- Routes --------------------
 @app.route('/rag', methods=['OPTIONS'])
 def handle_options():
     return jsonify({'message': 'Preflight request accepted'}), 200
@@ -227,32 +141,41 @@ def rag():
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
 
-        # Validate required fields
-        required_fields = ['dob', 'time_of_birth', 'place_of_birth', 'symptom_keywords']
-        for field in required_fields:
-            if field not in data or not data[field]:
+        # Required fields
+        for field in ['dob', 'time_of_birth', 'place_of_birth', 'symptom_keywords']:
+            if field not in data:
                 return jsonify({"error": f"Missing required field: {field}"}), 400
 
         dob = data['dob']
         time_of_birth = data['time_of_birth']
         place_of_birth = data['place_of_birth']
+
+        # Convert symptom_keywords to list if it's an object
         symptoms = data['symptom_keywords']
+        if isinstance(symptoms, dict):
+            symptoms = list(symptoms.values())
+        elif not isinstance(symptoms, list):
+            symptoms = []
+
         academic_records = data.get('academic_records', [])
 
-        # Get zodiac information
+        # Zodiac
         zodiac, famous_people = get_zodiac_and_famous_people(dob)
 
-        # Prepare academic summary if available
+        # Academic summary
         academic_summary = ""
-        if academic_records:
+        if isinstance(academic_records, str):
+            academic_summary = f"\nAcademic Performance:\n{academic_records}"
+        elif isinstance(academic_records, list):
+            # optional structured format
             academic_summary = "\nAcademic Performance:\n" + "\n".join(
-                f"{rec.get('year', '')} - Class {rec.get('class', '')}: " +
+                f"{rec.get('year','')} - Class {rec.get('class','')}: " +
                 ", ".join(f"{sub['subject']} ({sub['percentage']}%)" 
-                for sub in rec.get('subjects', []))
+                for sub in rec.get('subjects',[]))
                 for rec in academic_records
             )
 
-        # Construct the standardized query
+        # Construct query
         query = f"""
 Comprehensive Child Profile Analysis Request:
 
@@ -269,58 +192,38 @@ Comprehensive Child Profile Analysis Request:
 📘 Academic Performance Summary:
 {academic_summary if academic_summary else "Academic records were not provided."}
 
-📊 Based on the child's **astrological sign ({zodiac})**, psychological traits, and academic records, please provide a report with:
+📊 Please provide:
+1. Three Key Strengths
+2. Three Areas for Improvement
+3. Three Personalized Recommendations
 
-1. **Three Key Strengths**  
-   - Integrate astrological, psychological, and academic strengths  
-   - Highlight subject-specific performance if available  
-
-2. **Three Areas for Improvement**  
-   - Include academic gaps if reflected in the records  
-   - Consider emotional or behavioral weaknesses  
-
-3. **Three Personalized Recommendations**  
-   - Realistic suggestions based on child’s learning profile  
-   - Can include educational strategies, emotional support, or extracurriculars  
-
-📌 Also, include this note at the end:  
-_"This report will be taken again during training to improve accuracy and provide more refined insights."_
-
-💡 Notes:  
-- Bold important traits or categories (**like this**)  
-- Connect zodiac personality traits to any behavioral/learning patterns  
-- Maintain a clear balance between astrology, psychology, and academics  
+💡 Notes:
+- Bold important traits (**like this**)
 """
 
-        # Get AI response
+        # Call QA chain
         result = qa_chain({"query": query})
-        full_answer = result["result"]
+        full_answer = result.get("result", "No AI response generated.")
 
-        # Parse the response into structured sections
         sections = parse_report_sections(full_answer)
 
-        # Prepare the standardized response
-        response_data = {
+        return jsonify({
             "strengths": sections["strengths"],
             "weaknesses": sections["weaknesses"],
             "recommendations": sections["recommendations"],
             "zodiac": zodiac,
             "famous_people": famous_people,
             "raw_answer": full_answer
-        }
-
-        return jsonify(response_data)
+        })
 
     except Exception as e:
-        print(f"Error in /rag endpoint: {str(e)}")
-        return jsonify({
-            "error": "Failed to generate report",
-            "details": str(e)
-        }), 500
-    
+        print("Error in /rag endpoint:", e, flush=True)
+        return jsonify({"error": "Failed to generate report", "details": str(e)}), 500
+
 @app.route("/", methods=["GET"])
 def home():
     return "✅ Flask RAG API is live and ready!"
 
+# -------------------- Run --------------------
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
