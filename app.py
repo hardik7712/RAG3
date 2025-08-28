@@ -12,6 +12,7 @@ app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
         "origins": [
+            "https://nurture-spark-portal.lovable.app"
             "http://192.168.56.1:8080",
             "http://localhost:8080",
             "http://127.0.0.1:8080",
