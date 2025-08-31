@@ -139,6 +139,8 @@ def handle_options():
 def rag():
     try:
         data = request.get_json()
+        print("\n📩 [REQUEST RECEIVED - /rag]:", data, flush=True)  # log request
+
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
 
@@ -207,14 +209,17 @@ Comprehensive Child Profile Analysis Request:
 
         sections = parse_report_sections(full_answer)
 
-        return jsonify({
+        response_data = {
             "strengths": sections["strengths"],
             "weaknesses": sections["weaknesses"],
             "recommendations": sections["recommendations"],
             "zodiac": zodiac,
             "famous_people": famous_people,
             "raw_answer": full_answer
-        })
+        }
+
+        print("📤 [RESPONSE SENT - /rag]:", response_data, flush=True)  # log response
+        return jsonify(response_data)
 
     except Exception as e:
         print("Error in /rag endpoint:", e, flush=True)
@@ -225,6 +230,8 @@ Comprehensive Child Profile Analysis Request:
 def rag_message():
     try:
         data = request.get_json()
+        print("\n📩 [REQUEST RECEIVED - /rag-message]:", data, flush=True)  # log request
+
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
 
@@ -251,9 +258,10 @@ Please generate a single comprehensive reply based on the above, using the knowl
         result = qa_chain({"query": query})
         full_answer = result.get("result", "No AI response generated.")
 
-        return jsonify({
-            "reply": full_answer
-        })
+        response_data = {"reply": full_answer}
+
+        print("📤 [RESPONSE SENT - /rag-message]:", response_data, flush=True)  # log response
+        return jsonify(response_data)
 
     except Exception as e:
         print("Error in /rag-message endpoint:", e, flush=True)
